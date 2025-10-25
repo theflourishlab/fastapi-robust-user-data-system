@@ -8,7 +8,7 @@ from sqlalchemy.orm import sessionmaker
 
 engine = create_async_engine(
     url=Config.DATABASE_URL,
-    echo=True # Should be False in production
+    echo=False # Should be False in production
 )
 
 AsyncSessionLocal = sessionmaker(

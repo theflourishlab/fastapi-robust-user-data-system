@@ -1,8 +1,7 @@
-from fastapi import status, HTTPException, Response, APIRouter, Depends
 from typing import List
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from fastapi import status, Response, APIRouter, Depends
 from src.database.main import get_session
 from src.users.models import User
 from src.users.schemas import UserCreateSchema, UserUpdateSchema

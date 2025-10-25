@@ -1,7 +1,16 @@
 from pydantic import BaseModel
+import uuid
 
 
 class UserCreateSchema(BaseModel):
+    firstname: str
+    lastname: str
+    email: str
+    username: str
+    password: str
+
+class UserReadSchema(BaseModel):
+    id: uuid.UUID
     firstname: str
     lastname: str
     email: str
