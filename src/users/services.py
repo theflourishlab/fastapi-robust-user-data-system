@@ -2,30 +2,13 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import update, delete
-from .schemas import UserCreateSchema, UserUpdateSchema
+from ..auth.schemas import UserUpdateSchema
 from .models import User
 import uuid
 from fastapi import HTTPException, status
 from typing import List
 
 class UserService:
-    async def create_user(self, user_data: UserCreateSchema, session: AsyncSession) -> User:
-        """Create a user after checking for uniqueness of username and email."""
-        # Check if username or email already exists
-        stmt = select(User).where((User.username == user_data.username) | (User.email == user_data.email))
-        existing_user = (await session.execute(stmt)).scalars().first()
-        if existing_user:
-            if existing_user.username == user_data.username:
-                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Username already registered")
-            if existing_user.email == user_data.email:
-                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
-
-        new_user = User.model_validate(user_data)
-        session.add(new_user)
-        await session.commit()
-        await session.refresh(new_user)
-        return new_user
-
     async def get_all_users(self, session: AsyncSession, skip: int = 0, limit: int = 100) -> List[User]:
         """Get all non-deleted users with pagination."""
         stmt = select(User).where(User.is_deleted == False).offset(skip).limit(limit).order_by(User.created_at.desc())
@@ -57,13 +40,13 @@ class UserService:
             if 'email' in update_data:
                 query_filter.append(User.email == update_data['email'])
             
-            stmt = select(User).where(User.id != user_id, *query_filter)
+            stmt = select(User).where(User.id != user_id).where(or_(*query_filter))
             existing_user = (await session.execute(stmt)).scalars().first()
             if existing_user:
                 if 'username' in update_data and existing_user.username == update_data['username']:
                     raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Username already registered")
                 if 'email' in update_data and existing_user.email == update_data['email']:
-                    raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
+                    raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already in use")
 
         for key, value in update_data.items():
             setattr(db_user, key, value)

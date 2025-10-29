@@ -20,7 +20,7 @@ AsyncSessionLocal = sessionmaker(
 async def init_db():
     async with engine.begin() as conn:
         # Drop all tables first (useful for development to apply schema changes)
-        await conn.run_sync(SQLModel.metadata.drop_all)
+        # await conn.run_sync(SQLModel.metadata.drop_all) # This deletes all data on restart
         await conn.run_sync(SQLModel.metadata.create_all)
         # CREATE TRIGGER
         insert_trigger = (text(

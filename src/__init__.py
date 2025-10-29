@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from src.users.routes import user_router
+from src.auth.routes import auth_router
 from src.database.main import init_db
 from contextlib import asynccontextmanager
 
@@ -7,7 +8,6 @@ from contextlib import asynccontextmanager
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Initializing database...")
-    # This will drop and recreate tables. Good for dev, but use migrations (like Alembic) for production.
     await init_db()
     yield
     print("Server has been stopped")
@@ -23,4 +23,5 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-app.include_router(user_router, prefix=f"/api/{version}/users")
+app.include_router(user_router, prefix=f"/api/{version}/users", tags=["users"])
+app.include_router(auth_router, prefix=f"/api/{version}/auth", tags=["auth"])
