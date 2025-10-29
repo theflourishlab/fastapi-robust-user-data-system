@@ -6,6 +6,7 @@ from src.database.main import get_session
 from src.users.models import User
 from .schemas import UserCreateSchema, TokenSchema, UserLoginSchema
 from .service import AuthService
+from .dependencies import get_user_from_refresh_token
 from .utils import create_access_token, verify_password
 
 auth_router = APIRouter()
@@ -39,6 +40,17 @@ async def login_for_access_token(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect email or password")
     
     token_data = {"sub": user.email, "id": str(user.id)}
+    access_token = create_access_token(user_data=token_data, refresh=False)
+    refresh_token = create_access_token(user_data=token_data, refresh=True)
+
+    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
+
+
+@auth_router.post("/refresh", response_model=TokenSchema)
+async def refresh_access_token(current_user: User = Depends(get_user_from_refresh_token)):
+    """Generate a new access and refresh token."""
+    token_data = {"sub": current_user.email, "id": str(current_user.id)}
+    
     access_token = create_access_token(user_data=token_data, refresh=False)
     refresh_token = create_access_token(user_data=token_data, refresh=True)
 
