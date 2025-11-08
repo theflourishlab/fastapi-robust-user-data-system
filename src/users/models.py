@@ -32,6 +32,9 @@ class User(SQLModel, table=True):
             unique=True,
         )
         )
+    role: str = Field(
+        default="user", sa_column=Column(String, nullable=False, server_default="user"))
+
     hashed_password: str = Field(
         exclude=True,
         nullable=False)

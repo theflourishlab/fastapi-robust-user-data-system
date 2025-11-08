@@ -1,12 +1,13 @@
 # Define all crud behaviours with proper status codes and error handling
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import update, delete
+from sqlalchemy import update, delete, or_
 from ..auth.schemas import UserUpdateSchema
 from .models import User
 import uuid
 from fastapi import HTTPException, status
 from typing import List
+from .errors import UserNotFoundException, UsernameConflictException, EmailConflictException, UserNotDeletedException
 
 class UserService:
     async def get_all_users(self, session: AsyncSession, skip: int = 0, limit: int = 100) -> List[User]:
@@ -20,7 +21,7 @@ class UserService:
         """Get a single non-deleted user by id."""
         user = await session.get(User, user_id)
         if not user or user.is_deleted:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+            raise UserNotFoundException("User not found")
         return user
 
     async def update_part_of_a_user(self, user_id: uuid.UUID, user_data: UserUpdateSchema, session: AsyncSession) -> User:
@@ -44,9 +45,9 @@ class UserService:
             existing_user = (await session.execute(stmt)).scalars().first()
             if existing_user:
                 if 'username' in update_data and existing_user.username == update_data['username']:
-                    raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Username already registered")
+                    raise UsernameConflictException("Username already registered")
                 if 'email' in update_data and existing_user.email == update_data['email']:
-                    raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already in use")
+                    raise EmailConflictException("Email already in use")
 
         for key, value in update_data.items():
             setattr(db_user, key, value)
@@ -60,7 +61,7 @@ class UserService:
         """Soft delete a user by setting is_deleted to True."""
         user = await session.get(User, user_id)
         if not user or user.is_deleted:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found or already deleted")
+            raise UserNotFoundException("User not found or already deleted")
 
         user.is_deleted = True
         session.add(user)
@@ -70,10 +71,10 @@ class UserService:
         """Restore a soft-deleted user."""
         user = await session.get(User, user_id)
         if not user:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+            raise UserNotFoundException("User not found")
         
         if not user.is_deleted:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User is not deleted")
+            raise UserNotDeletedException("User is not deleted")
 
         user.is_deleted = False
         session.add(user)
@@ -85,7 +86,7 @@ class UserService:
         """Permanently delete a user from the database."""
         user = await session.get(User, user_id)
         if not user:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+            raise UserNotFoundException("User not found")
 
         await session.delete(user)
         await session.commit()

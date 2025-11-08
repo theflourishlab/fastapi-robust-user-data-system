@@ -3,6 +3,8 @@ from src.users.routes import user_router
 from src.auth.routes import auth_router
 from src.database.main import init_db
 from contextlib import asynccontextmanager
+from src.auth.errors import register_auth_errors
+from src.users.errors import register_user_errors
 
 # Create a lifespan event
 @asynccontextmanager
@@ -22,6 +24,9 @@ app = FastAPI(
     version=version,
     lifespan=lifespan
 )
+
+register_user_errors(app)
+register_auth_errors(app)
 
 app.include_router(user_router, prefix=f"/api/{version}/users", tags=["users"])
 app.include_router(auth_router, prefix=f"/api/{version}/auth", tags=["auth"])

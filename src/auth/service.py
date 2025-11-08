@@ -1,9 +1,9 @@
 from sqlmodel import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import HTTPException, status
 
 from src.users.models import User
 
+from src.users.errors import UsernameConflictException, EmailConflictException
 from .schemas import UserCreateSchema
 from .utils import generate_passwd_hash
 
@@ -24,15 +24,16 @@ class AuthService:
         existing_user = (await session.execute(stmt)).scalars().first()
         if existing_user:
             if existing_user.username == user_data.username:
-                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Username already registered")
+                raise UsernameConflictException("Username already registered")
             if existing_user.email == user_data.email:
-                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
+                raise EmailConflictException("Email already registered")
 
         user_dict = user_data.model_dump()
         password = user_dict.pop("password")
         user_dict["hashed_password"] = generate_passwd_hash(password)
 
         new_user = User(**user_dict)
+        new_user.role = "user"
         
         session.add(new_user)
         await session.commit()
