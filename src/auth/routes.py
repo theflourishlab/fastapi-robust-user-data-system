@@ -17,18 +17,12 @@ auth_service = AuthService()
 logger = logging.getLogger(__name__)
 
 
-@auth_router.post("/signup")
+@auth_router.post("/signup", status_code=status.HTTP_201_CREATED)
 async def create_user_account(
     user_data: UserCreateSchema, session: AsyncSession = Depends(get_session)
 ) -> User:
     """Create a new user account."""
-    try:
-        return await auth_service.create_user(user_data=user_data, session=session)
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error creating user: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not create user.")
+    return await auth_service.create_user(user_data=user_data, session=session)
 
 
 @auth_router.post("/login", response_model=TokenSchema)

@@ -6,16 +6,21 @@ from ..auth.schemas import UserUpdateSchema
 from .models import User
 import uuid
 from fastapi import HTTPException, status
-from typing import List
+from typing import List, Tuple
 from .errors import UserNotFoundException, UsernameConflictException, EmailConflictException, UserNotDeletedException
 
 class UserService:
-    async def get_all_users(self, session: AsyncSession, skip: int = 0, limit: int = 100) -> List[User]:
-        """Get all non-deleted users with pagination."""
-        stmt = select(User).where(User.is_deleted == False).offset(skip).limit(limit).order_by(User.created_at.desc())
+    async def get_all_users(self, session: AsyncSession, skip: int = 0, limit: int = 100) -> Tuple[List[User], bool]:
+        """
+        Get all non-deleted users with pagination.
+        Fetches one extra item to determine if `has_more` is true.
+        """
+        stmt = select(User).where(User.is_deleted == False).offset(skip).limit(limit + 1).order_by(User.created_at.desc())
         result = await session.execute(stmt)
         users = result.scalars().all()
-        return list(users)
+
+        has_more = len(users) > limit
+        return list(users[:limit]), has_more
 
     async def get_user_by_id(self, user_id: uuid.UUID, session: AsyncSession) -> User:
         """Get a single non-deleted user by id."""
